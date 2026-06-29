@@ -339,9 +339,10 @@ body::before{
 
     function loadData() {
         fetch(SUPABASE_URL + '/rest/v1/seating_data?select=data&key=eq.' + DATA_KEY, {
-            headers: { 'apikey': SUPABASE_KEY, 'Accept': 'application/json' }
+            headers: { 'apikey': SUPABASE_KEY, 'Accept': 'application/json' },
+            credentials: 'omit', mode: 'cors'
         })
-        .then(function(r) { return r.json(); })
+        
         .then(function(json) {
             if (json && json.length > 0 && json[0].data) {
                 var d = json[0].data;
@@ -425,7 +426,8 @@ body::before{
         fetch(SUPABASE_URL + '/rest/v1/seating_data?key=eq.' + DATA_KEY, {
             method: 'PATCH',
             headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data: payload })
+            body: JSON.stringify({ data: payload }),
+            credentials: 'omit', mode: 'cors'
         }).catch(function() {});
         var st = document.getElementById('saveStatus');
         if (st) { st.innerHTML = '☁️ 已保存'; st.style.color = ''; }
@@ -988,7 +990,7 @@ body::before{
         guests = []; tables = []; guestIdCounter = 0; tableIdCounter = 0;
         selectedTableId = null; searchHighlightedGuestId = null; searchHighlightedTableId = null;
         localStorage.removeItem('wedding_seating_v5_free');
-        fetch(SUPABASE_URL + '/rest/v1/seating_data?key=eq.' + DATA_KEY, { method: 'PATCH', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ data: {guests:[],tables:[],guestIdCounter:0,tableIdCounter:0} }) }).catch(function(){});
+        fetch(SUPABASE_URL + '/rest/v1/seating_data?key=eq.' + DATA_KEY, { method: 'PATCH', headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ data: {guests:[],tables:[],guestIdCounter:0,tableIdCounter:0} }), credentials: 'omit', mode: 'cors' }).catch(function(){});
         initDefaultTables(); saveData(); renderAll(); updateStats();
         document.getElementById('searchInput').value = '';
         document.getElementById('searchBadge').classList.remove('show');
@@ -1023,9 +1025,10 @@ body::before{
         fetch(SUPABASE_URL + '/rest/v1/seating_data?key=eq.' + DATA_KEY, {
             method: 'PATCH',
             headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ data: payload })
+            body: JSON.stringify({ data: payload }),
+            credentials: 'omit', mode: 'cors'
         })
-        .then(function(r) { return r.json(); })
+        
         .then(function() {
             var now = new Date().toLocaleString('zh-CN');
             showToast('✅ 数据已同步到云端，所有设备可见！', 'success');
@@ -1048,9 +1051,10 @@ body::before{
     function refreshData() {
         showToast('🔄 正在从云端刷新...', 'info');
         fetch(SUPABASE_URL + '/rest/v1/seating_data?select=data&key=eq.' + DATA_KEY, {
-            headers: { 'apikey': SUPABASE_KEY, 'Accept': 'application/json' }
+            headers: { 'apikey': SUPABASE_KEY, 'Accept': 'application/json' },
+            credentials: 'omit', mode: 'cors'
         })
-        .then(function(r) { return r.json(); })
+        
         .then(function(json) {
             if (json && json.length > 0 && json[0].data) {
                 var d = json[0].data;
