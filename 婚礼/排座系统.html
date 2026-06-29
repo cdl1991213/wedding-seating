@@ -312,9 +312,6 @@ body::before{
 (function() {
     const DATA_KEY = 'wedding_data';
 
-
-
-
     let guests = [], tables = [], guestIdCounter = 0, tableIdCounter = 0;
     let searchHighlightedGuestId = null, searchHighlightedTableId = null, selectedTableId = null;
     let dragState = null; // for absolute-position table dragging
@@ -358,39 +355,7 @@ body::before{
         updateStats();
     }
 
-    function initDefaultTables() {
-        const w = window.innerWidth || document.documentElement.clientWidth || 1200;
-        const isMobile = w < 640;
-        tables = [
-            { id: ++tableIdCounter, name: '主桌', capacity: 12, guestIds: [], shape: 'round', side: 'groom', x: 50, y: 12 },
-            { id: ++tableIdCounter, name: '男方长辈', capacity: 10, guestIds: [], shape: 'round', side: 'groom', x: isMobile ? 18 : 25, y: isMobile ? 34 : 28 },
-            { id: ++tableIdCounter, name: '女方长辈', capacity: 10, guestIds: [], shape: 'round', side: 'bride', x: isMobile ? 62 : 62, y: isMobile ? 34 : 28 },
-            { id: ++tableIdCounter, name: '男方亲友', capacity: 10, guestIds: [], shape: 'round', side: 'groom', x: isMobile ? 18 : 23, y: isMobile ? 56 : 44 },
-            { id: ++tableIdCounter, name: '女方亲友', capacity: 10, guestIds: [], shape: 'round', side: 'bride', x: isMobile ? 62 : 64, y: isMobile ? 56 : 44 },
-            { id: ++tableIdCounter, name: '同学朋友', capacity: 10, guestIds: [], shape: 'round', side: 'groom', x: isMobile ? 18 : 25, y: isMobile ? 78 : 60 },
-            { id: ++tableIdCounter, name: '同事伙伴', capacity: 10, guestIds: [], shape: 'round', side: 'bride', x: isMobile ? 62 : 62, y: isMobile ? 78 : 60 }
-        ];
-        saveData();
-    }
-
-    function loadData() {
-        try {
-            const raw = localStorage.getItem('wedding_seating_v5_free');
-            if (raw) {
-                const data = JSON.parse(raw);
-                guests = data.guests || []; tables = data.tables || [];
-                guestIdCounter = data.guestIdCounter || 0; tableIdCounter = data.tableIdCounter || 0;
-                tables.forEach(t => {
-                    if (!t.shape) t.shape = t.position === 'center' ? 'center' : 'round';
-                    if (!t.side) t.side = t.position === 'center' ? 'center' : (t.position === 'left' ? 'groom' : 'bride');
-                    if (t.x === undefined || t.y === undefined) { t.x = 50; t.y = 50; }
-                    delete t.position; delete t.positionOrder;
-                });
-            }
-        } catch(e) { guests = []; tables = []; }
-    }
-
-        function saveData() {
+    function saveData() {
         const payload = { guests, tables, guestIdCounter, tableIdCounter };
         try { localStorage.setItem('wedding_seating_v5_free', JSON.stringify(payload)); } catch(e) {}
         var st = document.getElementById('saveStatus');
