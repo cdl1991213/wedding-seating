@@ -218,6 +218,7 @@ body::before{
         </div>
         <button class="btn btn-ghost btn-sm" onclick="handleImportExcel()">📥 导入</button>
         <button class="btn btn-outline btn-sm" onclick="exportToExcel()">📤 导出</button>
+            <button class="btn btn-primary btn-sm" onclick="publishUpdate()" id="publishBtn">🚀 发布更新</button>
         <button class="btn btn-ghost btn-sm" onclick="resetAll()">🔄 重置</button>
     </div>
 </header>
@@ -934,6 +935,32 @@ body::before{
         d.textContent = s;
         return d.innerHTML;
     }
+
+        // ============ PUBLISH UPDATE ============
+    function publishUpdate() {
+        saveData();
+        const btn = document.getElementById('publishBtn');
+        if (!btn) return;
+        const orig = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '⏳ 发布中...';
+
+        fetch('http://127.0.0.1:18923/publish', { mode: 'no-cors' })
+            .then(() => {
+                const now = new Date().toLocaleString('zh-CN');
+                localStorage.setItem('wedding_last_publish', now);
+                showToast('✅ 已发布上线！', 'success');
+                btn.innerHTML = '✅ 已发布';
+                setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 2000);
+            })
+            .catch(() => {
+                showToast('⚠️ 请先运行「启动发布服务.bat」', 'warning');
+                btn.innerHTML = orig;
+                btn.disabled = false;
+            });
+    }
+
+    window.publishUpdate = publishUpdate;
 
     // ============ EXPOSE GLOBALLY ============
     window.addGuest = addGuest;
