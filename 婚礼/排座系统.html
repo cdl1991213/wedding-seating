@@ -222,7 +222,7 @@ body::before{
         </div>
         <button class="btn btn-ghost btn-sm" onclick="handleImportExcel()">📥 导入</button>
         <button class="btn btn-outline btn-sm" onclick="exportToExcel()">📤 导出</button>
-            <button class="btn btn-ghost btn-sm" onclick="refreshData()" title="从云端加载最新数据">🔄 刷新</button>
+            
             <button class="btn btn-primary btn-sm" onclick="publishUpdate()" id="publishBtn">💾 保存</button>
         <button class="btn btn-ghost btn-sm" onclick="resetAll()">🔄 重置</button>
     </div>
@@ -366,7 +366,7 @@ body::before{
             }
         } catch(e) { guests = []; tables = []; }
         renderAll(); updateStats();
-        if (guests.length === 0 && tables.length === 0) initDefaultTables();
+        if (guests.length === 0 && tables.length === 0) { initDefaultTables(); renderAll(); updateStats(); }
         if (guests.length === 0) setTimeout(() => showToast('💡 点击"加载示例宾客"快速开始', 'info'), 500);
     }
 
