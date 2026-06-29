@@ -322,7 +322,9 @@ body::before{
                 renderAll(); updateStats();
             }
         }, 2000);
-    }function initDefaultTables() {
+    }
+
+    function initDefaultTables() {
         const w = window.innerWidth || document.documentElement.clientWidth || 1200;
         const isMobile = w < 640;
         tables = [
@@ -342,7 +344,7 @@ body::before{
             headers: { 'apikey': SUPABASE_KEY, 'Accept': 'application/json' },
             credentials: 'omit', mode: 'cors'
         })
-        
+        .then(function(r) { return r.json(); })
         .then(function(json) {
             if (json && json.length > 0 && json[0].data) {
                 var d = json[0].data;
@@ -384,7 +386,9 @@ body::before{
         renderAll(); updateStats();
         if (guests.length === 0 && tables.length === 0) initDefaultTables();
         if (guests.length === 0) setTimeout(() => showToast('💡 点击"加载示例宾客"快速开始', 'info'), 500);
-    }function initDefaultTables() {
+    }
+
+    function initDefaultTables() {
         const w = window.innerWidth || document.documentElement.clientWidth || 1200;
         const isMobile = w < 640;
         tables = [
@@ -401,7 +405,7 @@ body::before{
 
     function loadData() {
         try {
-            const raw = localStorage.getItem();
+            const raw = localStorage.getItem('wedding_seating_v5_free');
             if (raw) {
                 const data = JSON.parse(raw);
                 guests = data.guests || []; tables = data.tables || [];
@@ -419,10 +423,7 @@ body::before{
     function saveData() {
         const payload = { guests, tables, guestIdCounter, tableIdCounter };
         try { localStorage.setItem('wedding_seating_v5_free', JSON.stringify(payload)); } catch(e) {}
-        try {
-            navigator.sendBeacon(SUPABASE_URL + '/rest/v1/seating_data?key=eq.' + DATA_KEY,
-                new Blob([JSON.stringify({ data: payload })], { type: 'application/json' }));
-        } catch(e) {}
+
         fetch(SUPABASE_URL + '/rest/v1/seating_data?key=eq.' + DATA_KEY, {
             method: 'PATCH',
             headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
@@ -1054,7 +1055,7 @@ body::before{
             headers: { 'apikey': SUPABASE_KEY, 'Accept': 'application/json' },
             credentials: 'omit', mode: 'cors'
         })
-        
+        .then(function(r) { return r.json(); })
         .then(function(json) {
             if (json && json.length > 0 && json[0].data) {
                 var d = json[0].data;
