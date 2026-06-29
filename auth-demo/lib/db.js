@@ -1,29 +1,30 @@
 // 存储适配器
-// 线上（Vercel）用 KV (Redis)，本地开发用 JSON 文件
-
-let kv = null
-
-async function getKv() {
-  if (kv) return kv
-  if (process.env.KV_URL) {
-    const { createClient } = await import('@vercel/kv')
-    kv = createClient({
-      url: process.env.KV_URL,
-      token: process.env.KV_REST_API_TOKEN
-    })
-  }
-  return kv
-}
+// 线上用 Supabase (PostgreSQL)，本地开发用 JSON 文件
 
 import fs from 'fs'
 import path from 'path'
 
+let supabase = null
+
+async function getClient() {
+  if (supabase) return supabase
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
+    const { createClient } = await import('@supabase/supabase-js')
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY
+    )
+  }
+  return supabase
+}
+
 const DATA_FILE = path.join(process.cwd(), 'data', 'users.json')
 
 export async function getUsers() {
-  const client = await getKv()
+  const client = await getClient()
   if (client) {
-    const data = await client.get('users')
+    const { data, error } = await client.from('users').select('*').order('created_at')
+    if (error) throw error
     return data || []
   }
   // 本地 fallback
@@ -35,9 +36,13 @@ export async function getUsers() {
 }
 
 export async function saveUsers(users) {
-  const client = await getKv()
+  const client = await getClient()
   if (client) {
-    await client.set('users', users)
+    const { error } = await client.from('users').upsert(users, {
+      onConflict: 'id',
+      ignoreDuplicates: false
+    })
+    if (error) throw error
     return
   }
   fs.writeFileSync(DATA_FILE, JSON.stringify(users, null, 2))
