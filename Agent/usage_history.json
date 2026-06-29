@@ -1,0 +1,302 @@
+{
+  "snapshots": [
+    {
+      "time": "2026-06-29T16:03:25",
+      "date": "2026-06-29",
+      "stations": {
+        "DeepSeek": {
+          "remain": "6.10",
+          "used": null,
+          "status": "ok"
+        },
+        "Sub2API": {
+          "remain": 92.1389551,
+          "used": null,
+          "status": "ok"
+        },
+        "APIHost": {
+          "remain": 100000000,
+          "used": null,
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "time": "2026-06-29T16:03:55",
+      "date": "2026-06-29",
+      "stations": {
+        "DeepSeek": {
+          "remain": "6.09",
+          "used": null,
+          "status": "ok"
+        },
+        "Sub2API": {
+          "remain": 92.1389551,
+          "used": null,
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "time": "2026-06-29T16:07:03",
+      "date": "2026-06-29",
+      "stations": {
+        "DeepSeek": {
+          "remain": "5.95",
+          "used": null,
+          "status": "ok"
+        },
+        "Sub2API": {
+          "remain": 92.1389551,
+          "used": null,
+          "status": "ok"
+        },
+        "APIHost": {
+          "remain": 100000000,
+          "used": null,
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "time": "2026-06-29T16:07:09",
+      "date": "2026-06-29",
+      "stations": {
+        "DeepSeek": {
+          "remain": "5.95",
+          "used": null,
+          "status": "ok"
+        },
+        "Sub2API": {
+          "remain": 92.1389551,
+          "used": null,
+          "status": "ok"
+        },
+        "APIHost": {
+          "remain": 100000000,
+          "used": null,
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "time": "2026-06-29T16:11:47",
+      "date": "2026-06-29",
+      "stations": {
+        "DeepSeek": {
+          "remain": null,
+          "used": null,
+          "status": "error"
+        },
+        "Sub2API": {
+          "remain": 92.1389551,
+          "used": null,
+          "status": "ok"
+        },
+        "APIHost": {
+          "remain": 1000000,
+          "used": 0,
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "time": "2026-06-29T16:12:27",
+      "date": "2026-06-29",
+      "stations": {
+        "DeepSeek": {
+          "remain": "5.74",
+          "used": null,
+          "status": "ok"
+        },
+        "Sub2API": {
+          "remain": 92.1389551,
+          "used": null,
+          "status": "ok"
+        },
+        "APIHost": {
+          "remain": 1000000,
+          "used": 0,
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "time": "2026-06-29T16:12:32",
+      "date": "2026-06-29",
+      "stations": {
+        "DeepSeek": {
+          "remain": "5.74",
+          "used": null,
+          "status": "ok"
+        },
+        "Sub2API": {
+          "remain": 92.1389551,
+          "used": null,
+          "status": "ok"
+        },
+        "APIHost": {
+          "remain": 1000000,
+          "used": 0,
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "time": "2026-06-29T16:23:15",
+      "date": "2026-06-29",
+      "stations": {
+        "DeepSeek": {
+          "remain": "55.50",
+          "used": null,
+          "status": "ok"
+        },
+        "Sub2API": {
+          "remain": 92.1389551,
+          "used": null,
+          "status": "ok"
+        },
+        "APIHost": {
+          "remain": 1000000,
+          "used": 0,
+          "status": "ok"
+        },
+        "MaiTokens": {
+          "remain": null,
+          "used": null,
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "time": "2026-06-29T16:23:23",
+      "date": "2026-06-29",
+      "stations": {
+        "DeepSeek": {
+          "remain": "55.50",
+          "used": null,
+          "status": "ok"
+        },
+        "Sub2API": {
+          "remain": 92.1389551,
+          "used": null,
+          "status": "ok"
+        },
+        "APIHost": {
+          "remain": 1000000,
+          "used": 0,
+          "status": "ok"
+        },
+        "MaiTokens": {
+          "remain": null,
+          "used": null,
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "time": "2026-06-29T16:24:04",
+      "date": "2026-06-29",
+      "stations": {
+        "DeepSeek": {
+          "remain": "55.50",
+          "used": null,
+          "status": "ok"
+        },
+        "Sub2API": {
+          "remain": 92.1389551,
+          "used": null,
+          "status": "ok"
+        },
+        "APIHost": {
+          "remain": 1000000,
+          "used": 0,
+          "status": "ok"
+        },
+        "MaiTokens": {
+          "remain": 1000000,
+          "used": 12.840702,
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "time": "2026-06-29T16:24:11",
+      "date": "2026-06-29",
+      "stations": {
+        "DeepSeek": {
+          "remain": "55.50",
+          "used": null,
+          "status": "ok"
+        },
+        "Sub2API": {
+          "remain": 92.1389551,
+          "used": null,
+          "status": "ok"
+        },
+        "APIHost": {
+          "remain": 1000000,
+          "used": 0,
+          "status": "ok"
+        },
+        "MaiTokens": {
+          "remain": 1000000,
+          "used": 12.840702,
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "time": "2026-06-29T16:26:59",
+      "date": "2026-06-29",
+      "stations": {
+        "DeepSeek": {
+          "remain": 55.32,
+          "used": null,
+          "status": "ok"
+        },
+        "Sub2API": {
+          "remain": 92.1389551,
+          "used": null,
+          "status": "ok"
+        },
+        "APIHost": {
+          "remain": 2.0,
+          "used": 0,
+          "status": "ok"
+        },
+        "MaiTokens": {
+          "remain": 2.0,
+          "used": 12.840702,
+          "status": "ok"
+        }
+      }
+    },
+    {
+      "time": "2026-06-29T16:27:07",
+      "date": "2026-06-29",
+      "stations": {
+        "DeepSeek": {
+          "remain": 55.32,
+          "used": null,
+          "status": "ok"
+        },
+        "Sub2API": {
+          "remain": 92.1389551,
+          "used": null,
+          "status": "ok"
+        },
+        "APIHost": {
+          "remain": 2.0,
+          "used": 0,
+          "status": "ok"
+        },
+        "MaiTokens": {
+          "remain": 2.0,
+          "used": 12.840702,
+          "status": "ok"
+        }
+      }
+    }
+  ]
+}

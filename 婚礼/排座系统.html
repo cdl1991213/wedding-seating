@@ -266,7 +266,7 @@ body::before{
     </aside>
     <main class="right-panel" id="rightPanel">
         <div class="venue-toolbar">
-            <span class="section-title">🏛️ 婚礼现场布局 <span class="save-status" id="saveStatus"><span class="save-dot"></span> 已保存</span></span>
+            <span class="section-title">🏛️ 婚礼现场布局 <span class="save-status" id="saveStatus">☁️ 待同步</span></span>
             <div style="display:flex;gap:6px;flex-wrap:wrap;">
                 <button class="btn btn-outline btn-sm" onclick="addTable()">➕ 加桌</button>
                 <button class="btn btn-ghost btn-sm" onclick="clearAllTables()" style="color:#c97d7d;">🗑️ 清空</button>
@@ -305,19 +305,83 @@ body::before{
 <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" onchange="handleFileSelect(event)">
 <script>
 (function() {
-    const STORAGE_KEY = 'wedding_seating_v5_free';
+    const SUPABASE_URL = 'https://huiaeurnjkczflfognzr.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1aWFldXJuamtjemZsZm9nbnpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MTU2MTEsImV4cCI6MjA5ODI5MTYxMX0.BVsNCzVgDtaR1vUvGXK_f77TKPsXaFIbVXrVRtYEBnc';
+    const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const DATA_KEY = 'wedding_data';
     let guests = [], tables = [], guestIdCounter = 0, tableIdCounter = 0;
     let searchHighlightedGuestId = null, searchHighlightedTableId = null, selectedTableId = null;
     let dragState = null; // for absolute-position table dragging
 
     function init() {
         loadData();
-        if (tables.length === 0) initDefaultTables();
-        renderAll(); updateStats();
-        if (guests.length === 0) setTimeout(() => showToast('💡 点击"加载示例宾客"快速开始', 'info'), 500);
+        // loadData is async via Supabase; initDefaultTables will be called if no data
+        setTimeout(() => {
+            if (tables.length === 0) {
+                initDefaultTables();
+                renderAll(); updateStats();
+            }
+        }, 2000);
+    }function initDefaultTables() {
+        const w = window.innerWidth || document.documentElement.clientWidth || 1200;
+        const isMobile = w < 640;
+        tables = [
+            { id: ++tableIdCounter, name: '主桌', capacity: 12, guestIds: [], shape: 'round', side: 'groom', x: 50, y: 12 },
+            { id: ++tableIdCounter, name: '男方长辈', capacity: 10, guestIds: [], shape: 'round', side: 'groom', x: isMobile ? 18 : 25, y: isMobile ? 34 : 28 },
+            { id: ++tableIdCounter, name: '女方长辈', capacity: 10, guestIds: [], shape: 'round', side: 'bride', x: isMobile ? 62 : 62, y: isMobile ? 34 : 28 },
+            { id: ++tableIdCounter, name: '男方亲友', capacity: 10, guestIds: [], shape: 'round', side: 'groom', x: isMobile ? 18 : 23, y: isMobile ? 56 : 44 },
+            { id: ++tableIdCounter, name: '女方亲友', capacity: 10, guestIds: [], shape: 'round', side: 'bride', x: isMobile ? 62 : 64, y: isMobile ? 56 : 44 },
+            { id: ++tableIdCounter, name: '同学朋友', capacity: 10, guestIds: [], shape: 'round', side: 'groom', x: isMobile ? 18 : 25, y: isMobile ? 78 : 60 },
+            { id: ++tableIdCounter, name: '同事伙伴', capacity: 10, guestIds: [], shape: 'round', side: 'bride', x: isMobile ? 62 : 62, y: isMobile ? 78 : 60 }
+        ];
+        saveData();
     }
 
-    function initDefaultTables() {
+    function loadData() {
+        // 尝试从 Supabase 加载云端数据
+        supabase.from('seating_data').select('data').eq('key', DATA_KEY).single().then(({ data, error }) => {
+            if (data && data.data) {
+                const d = data.data;
+                guests = d.guests || []; tables = d.tables || [];
+                guestIdCounter = d.guestIdCounter || 0; tableIdCounter = d.tableIdCounter || 0;
+                tables.forEach(t => {
+                    if (!t.shape) t.shape = 'round';
+                    if (!t.side) t.side = 'groom';
+                    if (t.x === undefined || t.y === undefined) { t.x = 50; t.y = 50; }
+                    delete t.position; delete t.positionOrder;
+                });
+                showToast('☁️ 已加载云端数据', 'success');
+            } else {
+                loadLocalFallback();
+            }
+            renderAll(); updateStats();
+            if (guests.length === 0 && tables.length === 0) initDefaultTables();
+            if (guests.length === 0) setTimeout(() => showToast('💡 点击"加载示例宾客"快速开始', 'info'), 500);
+        }).catch(() => {
+            loadLocalFallback();
+        });
+    }
+
+    function loadLocalFallback() {
+        try {
+            const raw = localStorage.getItem('wedding_seating_v5_free');
+            if (raw) {
+                const data = JSON.parse(raw);
+                guests = data.guests || []; tables = data.tables || [];
+                guestIdCounter = data.guestIdCounter || 0; tableIdCounter = data.tableIdCounter || 0;
+                tables.forEach(t => {
+                    if (!t.shape) t.shape = 'round';
+                    if (!t.side) t.side = 'groom';
+                    if (t.x === undefined || t.y === undefined) { t.x = 50; t.y = 50; }
+                    delete t.position; delete t.positionOrder;
+                });
+                showToast('📤 已从本地加载数据', 'info');
+            }
+        } catch(e) { guests = []; tables = []; }
+        renderAll(); updateStats();
+        if (guests.length === 0 && tables.length === 0) initDefaultTables();
+        if (guests.length === 0) setTimeout(() => showToast('💡 点击"加载示例宾客"快速开始', 'info'), 500);
+    }function initDefaultTables() {
         const w = window.innerWidth || document.documentElement.clientWidth || 1200;
         const isMobile = w < 640;
         tables = [
@@ -334,7 +398,7 @@ body::before{
 
     function loadData() {
         try {
-            const raw = localStorage.getItem(STORAGE_KEY);
+            const raw = localStorage.getItem();
             if (raw) {
                 const data = JSON.parse(raw);
                 guests = data.guests || []; tables = data.tables || [];
@@ -350,11 +414,16 @@ body::before{
     }
 
     function saveData() {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify({ guests, tables, guestIdCounter, tableIdCounter }));
-            const st = document.getElementById('saveStatus');
-            if (st) { st.innerHTML = '<span class="save-dot"></span> 已保存'; st.style.color = ''; }
-        } catch(e) { showToast('数据存储失败', 'error'); }
+        const payload = { guests, tables, guestIdCounter, tableIdCounter };
+        try { localStorage.setItem('wedding_seating_v5_free', JSON.stringify(payload)); } catch(e) {}
+        supabase.from('seating_data').upsert(
+            { key: DATA_KEY, data: payload },
+            { onConflict: 'key' }
+        ).then(({ error }) => {
+            if (error) console.warn('Cloud save failed:', error);
+        });
+        const st = document.getElementById('saveStatus');
+        if (st) { st.innerHTML = '☁️ 已保存'; st.style.color = ''; }
     }
 
     function getUnassignedGuests() { return guests.filter(g => g.tableId === null); }
@@ -913,7 +982,8 @@ body::before{
         if (!confirm('确定重置所有数据？')) return;
         guests = []; tables = []; guestIdCounter = 0; tableIdCounter = 0;
         selectedTableId = null; searchHighlightedGuestId = null; searchHighlightedTableId = null;
-        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem('wedding_seating_v5_free');
+        supabase.from('seating_data').upsert({ key: DATA_KEY, data: {guests:[],tables:[],guestIdCounter:0,tableIdCounter:0} }, { onConflict: 'key' });
         initDefaultTables(); saveData(); renderAll(); updateStats();
         document.getElementById('searchInput').value = '';
         document.getElementById('searchBadge').classList.remove('show');
@@ -938,26 +1008,30 @@ body::before{
 
         // ============ PUBLISH UPDATE ============
     function publishUpdate() {
-        saveData();
         const btn = document.getElementById('publishBtn');
         if (!btn) return;
         const orig = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '⏳ 发布中...';
-
-        fetch('http://127.0.0.1:18923/publish', { mode: 'no-cors' })
-            .then(() => {
-                const now = new Date().toLocaleString('zh-CN');
-                localStorage.setItem('wedding_last_publish', now);
-                showToast('✅ 已发布上线！', 'success');
-                btn.innerHTML = '✅ 已发布';
-                setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 2000);
-            })
-            .catch(() => {
-                showToast('⚠️ 请先运行「启动发布服务.bat」', 'warning');
+        btn.innerHTML = '⏳ 保存中...';
+        saveData();
+        // Force a direct cloud sync
+        const payload = { guests, tables, guestIdCounter, tableIdCounter };
+        supabase.from('seating_data').upsert(
+            { key: DATA_KEY, data: payload },
+            { onConflict: 'key' }
+        ).then(({ error }) => {
+            if (error) {
+                showToast('❌ 云同步失败', 'error');
                 btn.innerHTML = orig;
-                btn.disabled = false;
-            });
+            } else {
+                const now = new Date().toLocaleString('zh-CN');
+                showToast('✅ 数据已保存到云端，所有人可见！', 'success');
+                btn.innerHTML = '☁️ 已同步';
+                document.getElementById('saveStatus').innerHTML = '☁️ 云端 ' + now;
+            }
+            btn.disabled = false;
+            setTimeout(() => { btn.innerHTML = orig; }, 2000);
+        });
     }
 
     window.publishUpdate = publishUpdate;

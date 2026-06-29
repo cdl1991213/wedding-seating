@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API 中转站仪表盘</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:'JetBrains Mono','Microsoft YaHei','PingFang SC',sans-serif;
+  background:#0a0a0f;color:#c8d6e5;min-height:100vh;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:
+    linear-gradient(rgba(0,255,65,.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,255,65,.03) 1px,transparent 1px);
+  background-size:40px 40px;z-index:0;pointer-events:none;
+  animation:gridScroll 20s linear infinite;
+}
+@keyframes gridScroll{0%{transform:translate(0,0)}100%{transform:translate(40px,40px)}}
+#matrixCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;opacity:.1;pointer-events:none}
+.scanlines{
+  position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,65,.015) 2px,rgba(0,255,65,.015) 4px);
+}
+.corner-glow{
+  position:fixed;width:400px;height:400px;border-radius:50%;filter:blur(120px);z-index:0;pointer-events:none;
+  animation:glowPulse 4s ease-in-out infinite alternate;
+}
+.corner-glow.tl{top:-100px;left:-100px;background:radial-gradient(circle,rgba(0,255,65,.12),transparent 70%)}
+.corner-glow.br{bottom:-100px;right:-100px;background:radial-gradient(circle,rgba(0,200,255,.1),transparent 70%);animation-delay:2s}
+@keyframes glowPulse{0%{opacity:.5;transform:scale(1)}100%{opacity:1;transform:scale(1.15)}}
+#particleCanvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.3}
+
+.header{position:relative;z-index:2;padding:16px 28px;margin:12px 20px 0;border-radius:10px;background:rgba(10,10,20,.85);border:1px solid rgba(0,255,65,.12);box-shadow:0 0 30px rgba(0,255,65,.04),inset 0 0 30px rgba(0,255,65,.02);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;backdrop-filter:blur(20px)}
+.header::after{content:'';position:absolute;bottom:-1px;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(0,255,65,.5),transparent);animation:headerLine 3s ease-in-out infinite}
+@keyframes headerLine{0%,100%{opacity:.3}50%{opacity:1}}
+.header h1{font-family:'Orbitron',monospace;font-size:17px;font-weight:700;color:#00ff41;display:flex;align-items:center;gap:10px;text-shadow:0 0 20px rgba(0,255,65,.4),0 0 40px rgba(0,255,65,.2);letter-spacing:2px}
+.header h1 .sub{font-size:11px;color:rgba(255,255,255,.3);font-weight:400;letter-spacing:1px}
+.header h1 .cursor-blink{display:inline-block;width:8px;height:16px;background:#00ff41;margin-left:4px;animation:blink 1s step-end infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.header-actions{display:flex;align-items:center;gap:8px}
+.header-actions .status-indicator{display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,.4);font-family:'JetBrains Mono',monospace}
+.pulse-dot{width:6px;height:6px;border-radius:50%;display:inline-block;position:relative}
+.pulse-dot.online{background:#00ff41;box-shadow:0 0 8px rgba(0,255,65,.8)}
+.pulse-dot.online::after{content:'';position:absolute;top:-2px;left:-2px;right:-2px;bottom:-2px;border-radius:50%;border:1px solid rgba(0,255,65,.4);animation:pulseRing 2s ease-out infinite}
+.pulse-dot.offline{background:#ff4757;box-shadow:0 0 8px rgba(255,71,87,.6)}
+@keyframes pulseRing{0%{transform:scale(1);opacity:1}100%{transform:scale(2);opacity:0}}
+
+.btn{padding:7px 16px;border:none;border-radius:5px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:all .25s;position:relative;overflow:hidden;letter-spacing:.5px}
+.btn::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.05),transparent);transition:left .5s}
+.btn:hover::before{left:100%}
+.btn-primary{background:linear-gradient(135deg,rgba(0,255,65,.15),rgba(0,200,255,.1));border:1px solid rgba(0,255,65,.35);color:#00ff41;box-shadow:0 0 15px rgba(0,255,65,.08)}
+.btn-primary:hover{background:linear-gradient(135deg,rgba(0,255,65,.25),rgba(0,200,255,.2));box-shadow:0 0 25px rgba(0,255,65,.18);border-color:rgba(0,255,65,.6);transform:translateY(-1px)}
+.btn-secondary{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.6)}
+.btn-secondary:hover{background:rgba(255,255,255,.08);border-color:rgba(0,255,65,.25);color:#00ff41}
+.btn-outline{background:transparent;border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.45)}
+.btn-outline:hover{border-color:#00ff41;color:#00ff41;box-shadow:0 0 10px rgba(0,255,65,.08)}
+.btn-danger{background:rgba(255,71,87,.08);border:1px solid rgba(255,71,87,.35);color:#ff4757}
+.btn-danger:hover{background:rgba(255,71,87,.15);box-shadow:0 0 15px rgba(255,71,87,.12)}
+.btn-sm{padding:3px 8px;font-size:10px}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.container{position:relative;z-index:2;max-width:1280px;margin:0 auto;padding:12px 20px 40px}
+
+.stats-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.stat-card{background:rgba(10,10,25,.65);border-radius:8px;padding:12px 16px;border:1px solid rgba(0,255,65,.08);position:relative;overflow:hidden;backdrop-filter:blur(10px);transition:all .3s}
+.stat-card:hover{border-color:rgba(0,255,65,.25);box-shadow:0 0 20px rgba(0,255,65,.04)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:linear-gradient(180deg,#00ff41,transparent);animation:statBar 3s ease-in-out infinite}
+@keyframes statBar{0%,100%{opacity:.5}50%{opacity:1}}
+.stat-card .label{font-size:10px;color:rgba(255,255,255,.35);margin-bottom:3px;font-family:'JetBrains Mono',monospace;letter-spacing:1px;text-transform:uppercase}
+.stat-card .value{font-size:20px;font-weight:700;color:#00ff41;font-family:'Orbitron',monospace;text-shadow:0 0 10px rgba(0,255,65,.25)}
+.stat-card .sub{font-size:10px;color:rgba(255,255,255,.2);margin-top:1px}
+
+.charts-section{margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:768px){.charts-section{grid-template-columns:1fr}}
+.chart-card{background:rgba(10,10,25,.55);border-radius:8px;padding:14px 16px 12px;border:1px solid rgba(0,255,65,.06);position:relative;backdrop-filter:blur(10px)}
+.chart-card .chart-title{font-size:12px;color:rgba(255,255,255,.5);margin-bottom:8px;font-family:'JetBrains Mono',monospace;letter-spacing:1px;display:flex;align-items:center;gap:6px}
+.chart-card .chart-title .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.chart-card canvas{width:100%;height:180px;display:block}
+.chart-card .legend{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:6px}
+.chart-card .legend-item{font-size:10px;color:rgba(255,255,255,.35);display:flex;align-items:center;gap:4px}
+.chart-card .legend-item .dot{width:8px;height:8px;border-radius:2px;display:inline-block}
+.chart-card.empty{display:flex;align-items:center;justify-content:center;min-height:200px;color:rgba(255,255,255,.15);font-size:12px;font-family:'JetBrains Mono',monospace}
+
+.dashboard-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+.station-card{background:rgba(10,10,25,.55);border-radius:8px;border:1px solid rgba(0,255,65,.06);position:relative;backdrop-filter:blur(12px);transition:all .35s;overflow:hidden}
+.station-card::before{content:'';position:absolute;top:0;left:-1px;width:calc(100% + 2px);height:2px;background:linear-gradient(90deg,transparent,rgba(0,255,65,.35),rgba(0,200,255,.35),transparent);opacity:0;transition:opacity .5s}
+.station-card.loading::before{opacity:1;animation:scanLine 1.5s linear infinite}
+@keyframes scanLine{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.station-card:hover{border-color:rgba(0,255,65,.2);box-shadow:0 0 25px rgba(0,255,65,.05);transform:translateY(-2px)}
+.station-card:hover::before{opacity:1}
+.station-card .card-header{padding:12px 16px 8px;display:flex;align-items:flex-start;justify-content:space-between}
+.station-card .card-header .name-area{display:flex;align-items:center;gap:6px;min-width:0}
+.station-card .card-header .name-area h3{font-size:13px;font-weight:600;color:#e8f0fe;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'JetBrains Mono',monospace;letter-spacing:.3px}
+.status-badge{font-size:9px;padding:1px 7px;border-radius:3px;font-weight:500;font-family:'JetBrains Mono',monospace;letter-spacing:.3px}
+.status-badge.ok{background:rgba(0,255,65,.08);color:#00ff41;border:1px solid rgba(0,255,65,.2)}
+.status-badge.error{background:rgba(255,71,87,.08);color:#ff4757;border:1px solid rgba(255,71,87,.2)}
+.status-badge.connected{background:rgba(0,200,255,.08);color:#00c8ff;border:1px solid rgba(0,200,255,.2)}
+.card-actions{position:absolute;top:8px;right:8px;display:flex;gap:3px;opacity:0;transition:opacity .25s}
+.station-card:hover .card-actions{opacity:1}
+.icon-btn{width:24px;height:24px;border:1px solid rgba(255,255,255,.08);border-radius:4px;background:rgba(10,10,25,.8);cursor:pointer;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.3);transition:all .2s;backdrop-filter:blur(4px)}
+.icon-btn:hover{background:rgba(0,255,65,.08);border-color:rgba(0,255,65,.25);color:#00ff41}
+.icon-btn.danger:hover{background:rgba(255,71,87,.08);border-color:rgba(255,71,87,.25);color:#ff4757}
+.station-card .card-body{padding:0 16px 12px}
+.quota-display{background:rgba(0,255,65,.025);border-radius:6px;padding:8px 12px;margin-bottom:8px;border:1px solid rgba(0,255,65,.04);display:flex;align-items:center;justify-content:space-between;position:relative;overflow:hidden}
+.quota-display::after{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(90deg,transparent,rgba(0,255,65,.025),transparent);animation:quotaShimmer 3s ease-in-out infinite;pointer-events:none}
+@keyframes quotaShimmer{0%,100%{transform:translateX(-100%)}50%{transform:translateX(100%)}}
+.quota-display .quota-label{font-size:10px;color:rgba(255,255,255,.3);font-family:'JetBrains Mono',monospace;letter-spacing:.5px}
+.quota-display .quota-value{font-size:17px;font-weight:700;color:#00ff41;font-family:'Orbitron',monospace;text-shadow:0 0 12px rgba(0,255,65,.25);transition:all .5s}
+.quota-display .quota-value.error{color:#ff4757;text-shadow:0 0 12px rgba(255,71,87,.25)}
+.quota-display .quota-value.connected{color:#00c8ff;font-size:11px;font-weight:400;text-shadow:0 0 8px rgba(0,200,255,.25)}
+.info-row{display:flex;align-items:flex-start;gap:6px;font-size:10px;color:rgba(255,255,255,.3);padding:2px 0;font-family:'JetBrains Mono',monospace}
+.info-row .info-label{color:rgba(255,255,255,.18);min-width:52px;flex-shrink:0;font-size:9px;letter-spacing:.3px}
+.info-row .info-value{color:rgba(255,255,255,.4);word-break:break-all;font-size:10px}
+.models-tags{display:flex;flex-wrap:wrap;gap:3px;margin-top:2px}
+.model-tag{font-size:9px;padding:1px 6px;border-radius:3px;background:rgba(255,255,255,.03);color:rgba(255,255,255,.35);border:1px solid rgba(255,255,255,.04);font-family:'JetBrains Mono',monospace;transition:all .2s}
+.model-tag:hover{border-color:rgba(0,255,65,.15);color:rgba(0,255,65,.5)}
+.model-tag.deepseek{background:rgba(0,200,255,.05);color:rgba(0,200,255,.5);border-color:rgba(0,200,255,.1)}
+.model-tag.gpt{background:rgba(0,255,65,.05);color:rgba(0,255,65,.5);border-color:rgba(0,255,65,.1)}
+.model-tag.claude{background:rgba(255,165,0,.05);color:rgba(255,165,0,.5);border-color:rgba(255,165,0,.1)}
+.model-tag.gemini{background:rgba(0,200,255,.05);color:rgba(0,200,255,.5);border-color:rgba(0,200,255,.1)}
+.empty-state{text-align:center;padding:50px 20px;color:rgba(255,255,255,.15);grid-column:1/-1}
+.empty-state svg{width:40px;height:40px;opacity:.25;margin-bottom:10px}
+.empty-state p{font-size:12px;margin-bottom:12px;font-family:'JetBrains Mono',monospace}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;top:20px;right:20px;z-index:1000;background:rgba(10,10,25,.9);color:#00ff41;padding:10px 18px;border-radius:6px;font-size:11px;font-family:'JetBrains Mono',monospace;border:1px solid rgba(0,255,65,.2);box-shadow:0 0 25px rgba(0,255,65,.08);opacity:0;transform:translateY(-10px);transition:all .3s;pointer-events:none;backdrop-filter:blur(20px)}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.error{border-color:rgba(255,71,87,.35);color:#ff4757}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.7);z-index:999;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(4px)}
+.modal-overlay.show{opacity:1;pointer-events:auto}
+.modal{background:rgba(12,12,28,.95);border-radius:10px;width:500px;max-width:90vw;max-height:80vh;overflow-y:auto;padding:22px;border:1px solid rgba(0,255,65,.12);position:relative;box-shadow:0 0 35px rgba(0,255,65,.04)}
+.modal::before{content:'';position:absolute;top:0;left:10%;right:10%;height:1px;background:linear-gradient(90deg,transparent,rgba(0,255,65,.4),transparent)}
+.modal h2{font-size:14px;color:#00ff41;margin-bottom:16px;font-family:'Orbitron',monospace;letter-spacing:1px;text-shadow:0 0 8px rgba(0,255,65,.25)}
+.modal .field{margin-bottom:12px}
+.modal .field label{display:block;font-size:10px;color:rgba(255,255,255,.3);margin-bottom:3px;font-family:'JetBrains Mono',monospace;letter-spacing:.5px}
+.modal .field input,.modal .field textarea{width:100%;padding:8px 10px;background:rgba(255,255,255,.025);border:1px solid rgba(0,255,65,.1);border-radius:5px;font-size:12px;font-family:'JetBrains Mono',monospace;color:#c8d6e5;outline:none;transition:border-color .2s,box-shadow .2s}
+.modal .field input:focus,.modal .field textarea:focus{border-color:rgba(0,255,65,.35);box-shadow:0 0 12px rgba(0,255,65,.06)}
+.modal .field textarea{min-height:50px;resize:vertical}
+.modal .modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.section-title{font-size:13px;color:rgba(255,255,255,.4);margin:14px 0 10px;font-family:'JetBrains Mono',monospace;letter-spacing:1px;display:flex;align-items:center;gap:8px}
+.section-title::before{content:'//';color:rgba(0,255,65,.3)}
+.section-title::after{flex:1;height:1px;background:linear-gradient(90deg,rgba(0,255,65,.15),transparent);content:''}
+@media(max-width:640px){
+  .header{padding:12px 14px;margin:8px 8px 0}
+  .container{padding:10px 8px}
+  .dashboard-grid{grid-template-columns:1fr}
+  .modal{padding:14px;width:95vw}
+  .stats-bar{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="corner-glow tl"></div>
+<div class="corner-glow br"></div>
+<canvas id="matrixCanvas"></canvas>
+<canvas id="particleCanvas"></canvas>
+<div class="scanlines"></div>
+
+<div class="header">
+  <h1>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00ff41" stroke-width="1.5" style="filter:drop-shadow(0 0 6px rgba(0,255,65,.4))"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+    API DASHBOARD
+    <span class="sub">| 中转站监控</span>
+    <span class="cursor-blink"></span>
+  </h1>
+  <div class="header-actions">
+    <span class="status-indicator" id="refreshInfo">
+      <span class="pulse-dot online" id="serverDot"></span>
+      <span id="serverStatus">扫描中...</span>
+    </span>
+    <button class="btn btn-secondary" onclick="refreshAll()" id="refreshBtn"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg> 刷新</button>
+    <button class="btn btn-primary" onclick="openAddModal()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> 添加节点</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="stats-bar" id="statsBar">
+    <div class="stat-card" style="background:rgba(0,255,65,.08);border-color:rgba(0,255,65,.2)"><div class="label">总余额</div><div class="value" style="font-size:26px" id="totalYuan">--</div><div class="sub">all stations combined</div></div>
+    <div class="stat-card"><div class="label">节点在线</div><div class="value" id="onlineCount">--</div><div class="sub">/<span id="totalStations">--</span> nodes</div></div>
+    <div class="stat-card"><div class="label">异常</div><div class="value" id="errorCount">--</div><div class="sub">faults detected</div></div>
+    <div class="stat-card"><div class="label">可用模型</div><div class="value" id="totalModels">--</div><div class="sub">available models</div></div>
+    <div class="stat-card"><div class="label">节点总数</div><div class="value" id="totalStations">--</div><div class="sub">relay stations</div></div>
+    <div class="stat-card"><div class="label">在线</div><div class="value" id="onlineCount">--</div><div class="sub">nodes active</div></div>
+    <div class="stat-card"><div class="label">异常</div><div class="value" id="errorCount">--</div><div class="sub">faults detected</div></div>
+    <div class="stat-card"><div class="label">可用模型</div><div class="value" id="totalModels">--</div><div class="sub">available models</div></div>
+  </div>
+
+    <div class="section-title">统计概览</div>
+  <div class="charts-section" id="chartsSection">
+    <div class="chart-card empty" id="usageDistChart"><span>暂无数据</span></div>
+    <div class="chart-card empty" id="trendChart"><span>暂无数据</span></div>
+  </div>
+
+  <div class="section-title">节点列表</div>
+  <div id="dashboardGrid" class="dashboard-grid">
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg>
+      <p>尚未配置任何中转站</p>
+      <button class="btn btn-primary" onclick="openAddModal()">添加第一个节点</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">添加中转站</h2>
+    <div class="field">
+      <label>名称</label>
+      <input id="inputName" placeholder="例如：DeepSeek" />
+    </div>
+    <div class="field">
+      <label>接口地址</label>
+      <input id="inputUrl" placeholder="https://api.deepseek.com" />
+    </div>
+    <div class="field">
+      <label>API Key</label>
+      <input id="inputKey" type="password" placeholder="sk-..." />
+    </div>
+    <div class="field">
+      <label>可用模型（每行一个）</label>
+      <textarea id="inputModels" placeholder="deepseek-chat"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" id="modalSaveBtn" onclick="saveModal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// Matrix Rain
+(function(){var c=document.getElementById('matrixCanvas'),x=c.getContext('2d'),w,h,cols,drops;function resize(){w=c.width=window.innerWidth;h=c.height=window.innerHeight;cols=Math.floor(w/14);drops=Array(cols).fill(1).map(function(){return Math.random()*-100})}var chars='アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEF<>/{}[]|&^%$#@!';function draw(){x.fillStyle='rgba(10,10,15,0.05)';x.fillRect(0,0,w,h);x.font='14px monospace';for(var i=0;i<drops.length;i++){var t=chars[Math.floor(Math.random()*chars.length)],p=i*14,y=drops[i]*14;x.fillStyle=y>h*.3&&y<h*.7?'rgba(0,255,65,0.9)':'rgba(0,255,65,0.15)';x.fillText(t,p,y);if(y>h&&Math.random()>.975)drops[i]=0;drops[i]++}requestAnimationFrame(draw)}resize();window.addEventListener('resize',resize);draw()})();
+
+// Particles
+(function(){var c=document.getElementById('particleCanvas'),x=c.getContext('2d'),ps=[],w,h;function resize(){w=c.width=window.innerWidth;h=c.height=window.innerHeight}function P(){this.x=Math.random()*w;this.y=Math.random()*h;this.vx=(Math.random()-.5)*.5;this.vy=(Math.random()-.5)*.5;this.s=Math.random()*2+.5;this.o=Math.random()*.5+.1;this.u=function(){this.x+=this.vx;this.y+=this.vy;if(this.x<0||this.x>w||this.y<0||this.y>h){this.x=Math.random()*w;this.y=Math.random()*h}};this.d=function(){x.beginPath();x.arc(this.x,this.y,this.s,0,Math.PI*2);x.fillStyle='rgba(0,255,65,'+this.o+')';x.fill()}}function init(){resize();ps=Array.from({length:60},function(){return new P})}function animate(){x.clearRect(0,0,w,h);ps.forEach(function(p){p.u();p.d()});for(var i=0;i<ps.length;i++){for(var j=i+1;j<ps.length;j++){var dx=ps[i].x-ps[j].x,dy=ps[i].y-ps[j].y,d=Math.sqrt(dx*dx+dy*dy);if(d<120){x.beginPath();x.moveTo(ps[i].x,ps[i].y);x.lineTo(ps[j].x,ps[j].y);x.strokeStyle='rgba(0,255,65,'+(.05*(1-d/120))+')';x.lineWidth=.5;x.stroke()}}}requestAnimationFrame(animate)}init();window.addEventListener('resize',resize);animate()})();
+
+var config=[],editingIndex=-1,statsData=null;
+
+function api(url,opts){return fetch(url,opts).then(function(r){return r.json()})}
+function esc(s){if(!s)return '';var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+
+function loadConfig(){return api('/api/config').then(function(d){config=d})}
+
+function refreshAll(){
+  
+  var btn=document.getElementById('refreshBtn');btn.disabled=true;btn.innerHTML='<svg class="spinner" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> 扫描中...';
+  var grid=document.getElementById('dashboardGrid');
+  grid.querySelectorAll('.station-card').forEach(function(c){c.classList.add('loading')});
+  api('/api/usage/stats').then(function(s){
+    statsData=s;renderStats(s);renderResults(s.stations);drawCharts(s);
+    grid.querySelectorAll('.station-card').forEach(function(c){c.classList.remove('loading')});
+    btn.disabled=false;btn.innerHTML='<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg> 刷新';
+  });
+}
+
+function renderStats(s){
+  document.getElementById("totalYuan").textContent="¥"+s.total_yuan.toFixed(2);
+  document.getElementById("totalStations").textContent=s.total_stations;
+  document.getElementById("onlineCount").textContent=s.online;
+  document.getElementById("errorCount").textContent=s.errors;
+  document.getElementById("totalModels").textContent=s.total_models;
+  animateNumber('totalStations',s.total_stations);
+  animateNumber('onlineCount',s.online);
+  animateNumber('errorCount',s.errors);
+  animateNumber('totalModels',s.total_models);
+}
+
+function animateNumber(id,t){
+  var el=document.getElementById(id);if(!el)return;
+  var c=parseInt(el.textContent)||0,d=t-c;if(d===0){el.textContent=t;return}
+  var steps=Math.min(Math.abs(d),20),s=d/steps,st=0;
+  !function anim(){st++;el.textContent=Math.round(c+s*st);if(st<steps)requestAnimationFrame(anim);else el.textContent=t}()
+}
+
+function renderResults(results){
+  var grid=document.getElementById('dashboardGrid');grid.innerHTML='';
+  if(results.length===0){
+    grid.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg><p>尚未配置任何中转站</p><button class="btn btn-primary" onclick="openAddModal()">添加第一个节点</button></div>';
+    return
+  }
+  results.forEach(function(r,i){
+    var card=document.createElement('div');card.className='station-card';
+    var sc=r.status==='ok'?'ok':r.status==='connected'?'connected':'error';
+    var sl=r.status==='ok'?'在线':r.status==='connected'?'已连接':'离线';
+    var qc=r.status==='error'?'error':r.status==='connected'?'connected':'';
+    var dm=r.detected_models||[],am=r.models.length>0?r.models:dm,dl=r.models.length===0&&dm.length>0?' (检测)':'';
+    var mt=am.map(function(m){
+      var cl=m.toLowerCase().includes('deepseek')?'deepseek':m.toLowerCase().includes('gpt')?'gpt':m.toLowerCase().includes('claude')?'claude':m.toLowerCase().includes('gemini')?'gemini':'';
+      return '<span class="model-tag '+cl+'">'+esc(m)+'</span>'
+    }).join('');
+    card.innerHTML='<div class="card-header"><div class="name-area"><h3>> '+esc(r.name)+'</h3><span class="status-badge '+sc+'">'+sl+'</span></div></div><div class="card-actions"><button class="icon-btn" onclick="openEditModal('+i+')" title="编辑"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="icon-btn danger" onclick="deleteStation('+i+')" title="删除"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div><div class="card-body"><div class="quota-display"><span class="quota-label">剩余配额</span><span class="quota-value '+qc+'">'+(r.remain_display===null?'<span style="opacity:.4">查询中...</span>':r.remain_display)+'</span></div><div class="info-row"><span class="info-label">地址</span><span class="info-value">'+esc(r.base_url)+'</span></div>'+(r.group?'<div class="info-row"><span class="info-label">分组</span><span class="info-value">'+esc(r.group)+'</span></div>':'')+(mt?'<div class="info-row"><span class="info-label">模型'+dl+'</span><div class="info-value"><div class="models-tags">'+mt+'</div></div></div>':'')+'</div>';
+    grid.appendChild(card)
+  })
+}
+
+function drawCharts(s){
+  drawUsageDist(s);
+  drawBalanceTrend(s)
+}
+
+function drawUsageDist(s){
+  var container=document.getElementById('usageDistChart');
+  var stations=s.stations||[];
+  var hasData=stations.length>0;
+  if(!hasData||stations.length===0){
+    container.className='chart-card empty';container.innerHTML='<span style="font-size:12px">暂无用量数据</span>';return
+  }
+  container.className='chart-card';container.innerHTML='<div class="chart-title"><span class="dot" style="background:#00ff41"></span> 各站剩余配额</div><canvas id="donutCanvas" height="180"></canvas><div class="legend" id="donutLegend"></div>';
+  var canvas=document.getElementById('donutCanvas'),ctx=canvas.getContext('2d');
+  var rect=container.getBoundingClientRect();
+  canvas.width=rect.width-32||400;canvas.height=180;
+  var cx=canvas.width/2,cy=90,r=60,total=0,data=[],colors=['#00ff41','#00c8ff','#ffa500','#ff6b6b','#a855f7','#f97316','#06b6d4','#10b981'];
+  stations.forEach(function(st){
+    var rv=parseFloat(st.remain_yuan)||0;total+=rv;data.push({name:st.name,val:rv})
+  });
+  if(total===0){ctx.fillStyle='rgba(255,255,255,.1)';ctx.font='12px JetBrains Mono';ctx.textAlign='center';ctx.fillText('无余额数据',cx,cy+4);return}
+  var lw=20,start=-Math.PI/2,bg=ctx.createConicGradient(0,cx,cy);
+  data.forEach(function(d,i){var p=d.val/total;bg.addColorStop(i/data.length,'transparent')}); // not needed
+  data.forEach(function(d,i){
+    var p=d.val/total,a=start+2*p*Math.PI*.99;
+    ctx.beginPath();ctx.arc(cx,cy,r,start,start+2*p*Math.PI*.99);ctx.strokeStyle=colors[i%colors.length];ctx.lineWidth=lw;ctx.stroke();
+    // label
+    var la=start+2*p*Math.PI/2,ld=r+lw+10;
+    ctx.fillStyle=colors[i%colors.length];ctx.font='9px JetBrains Mono';ctx.textAlign='center';ctx.fillText(d.name.substr(0,8),cx+Math.cos(la)*ld,cy+Math.sin(la)*ld+3);
+    start+=2*p*Math.PI
+  });
+  ctx.beginPath();ctx.arc(cx,cy,32,0,Math.PI*2);ctx.fillStyle='rgba(10,10,25,.85)';ctx.fill();
+  ctx.fillStyle='#00ff41';ctx.font='14px Orbitron';ctx.textAlign='center';ctx.fillText(total.toFixed(2),cx,cy+5);
+  var legend=document.getElementById('donutLegend');
+  data.forEach(function(d,i){
+    var el=document.createElement('span');el.className='legend-item';
+    el.innerHTML='<span class="dot" style="background:'+colors[i%colors.length]+'"></span>'+esc(d.name)+' <span style="color:'+colors[i%colors.length]+'">'+(d.val/total*100).toFixed(1)+'%</span>';
+    legend.appendChild(el)
+  })
+}
+
+
+function drawBalanceTrend(s) {
+  var container=document.getElementById("trendChart");
+  var dh=s.daily_history||{};var dates=Object.keys(dh).sort();
+  if(dates.length<2){container.className="chart-card empty";container.innerHTML="<span>需要更多数据点</span>";return}
+  container.className="chart-card";
+  container.innerHTML='<div class="chart-title"><span class="dot" style="background:#00c8ff"></span> 余额趋势</div><canvas id="trendCanvas" height="180"></canvas>';
+  var canvas=document.getElementById("trendCanvas"),ctx=canvas.getContext("2d");
+  var rect=container.getBoundingClientRect();
+  canvas.width=rect.width-32||400;canvas.height=180;
+  var pad={t:20,b:28,l:40,r:10},w=canvas.width-pad.l-pad.r,h=canvas.height-pad.t-pad.b;
+  var pts={};dates.forEach(function(d){pts[d]={};Object.keys(dh[d].stations||{}).forEach(function(sn){pts[d][sn]=dh[d].stations[sn]})});
+  var allStations=[];dates.forEach(function(d){Object.keys(pts[d]||{}).forEach(function(sn){if(allStations.indexOf(sn)<0)allStations.push(sn)})});
+  var colors=["#00ff41","#00c8ff","#ffa500","#ff6b6b","#a855f7","#f97316"];
+  var lastDates=dates.slice(-7);
+  var maxVal=0;lastDates.forEach(function(d){
+  var dayTotal=0;allStations.forEach(function(sn){var v=pts[d]&&pts[d][sn];if(v)dayTotal+=v});
+  if(dayTotal>maxVal)maxVal=dayTotal
+});
+  if(maxVal===0)maxVal=1;
+  ctx.strokeStyle="rgba(255,255,255,.05)";ctx.lineWidth=.5;
+  for(var g=0;g<=4;g++){var gy=pad.t+h-(g/4*h);ctx.beginPath();ctx.moveTo(pad.l,gy);ctx.lineTo(pad.l+w,gy);ctx.stroke();ctx.fillStyle="rgba(255,255,255,.2)";ctx.font="8px JetBrains Mono";ctx.textAlign="right";ctx.fillText((maxVal/500000*g/4).toFixed(2),pad.l-5,gy+3)}
+  // Draw total line
+ctx.strokeStyle="#00ff41";ctx.lineWidth=2.5;ctx.beginPath();
+var first=true;lastDates.forEach(function(d,di){
+  var dayTotal=0;allStations.forEach(function(sn){var v=pts[d]&&pts[d][sn];if(v)dayTotal+=v});
+  var x=pad.l+(di/(lastDates.length-1||1))*w,y=pad.t+h-(dayTotal/maxVal)*h;
+  if(first){ctx.moveTo(x,y);first=false}else{ctx.lineTo(x,y)}
+});ctx.stroke();
+// Fill area under line
+ctx.lineTo(pad.l+w,pad.t+h);ctx.lineTo(pad.l,pad.t+h);ctx.closePath();
+ctx.fillStyle="rgba(0,255,65,.08)";ctx.fill();
+  ctx.fillStyle="rgba(255,255,255,.25)";ctx.font="8px JetBrains Mono";ctx.textAlign="center";
+  lastDates.forEach(function(d,di){var x=pad.l+(di/(lastDates.length-1||1))*w;ctx.fillText(d.slice(5),x,pad.t+h+14)});
+  var legend=document.createElement("div");legend.className="legend";
+  var el=document.createElement("span");el.className="legend-item";
+el.innerHTML='<span class="dot" style="background:#00ff41"></span>总余额趋势';
+legend.appendChild(el);
+  container.appendChild(legend);
+}
+
+function openAddModal(){editingIndex=-1;document.getElementById('modalTitle').textContent='添加中转站';document.getElementById('inputName').value='';document.getElementById('inputUrl').value='';document.getElementById('inputKey').value='';document.getElementById('inputModels').value='';document.getElementById('modalOverlay').classList.add('show')}
+function openEditModal(i){editingIndex=i;var s=config[i];document.getElementById('modalTitle').textContent='编辑中转站';document.getElementById('inputName').value=s.name||'';document.getElementById('inputUrl').value=s.base_url||'';document.getElementById('inputKey').value=s.api_key||'';document.getElementById('inputModels').value=(s.models||[]).join('\n');document.getElementById('modalOverlay').classList.add('show')}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('show')}
+function saveModal(){
+  var n=document.getElementById('inputName').value.trim(),u=document.getElementById('inputUrl').value.trim(),k=document.getElementById('inputKey').value.trim(),mt=document.getElementById('inputModels').value.trim();
+  if(!n||!u||!k){showToast('请填写名称、地址和 API Key','error');return}
+  var models=mt?mt.split('\n').map(function(s){return s.trim()}).filter(Boolean):[],station={name:n,base_url:u,api_key:k,models:models};
+  if(editingIndex>=0)config[editingIndex]=station;else config.push(station);
+  api('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(config)}).then(function(){closeModal();showToast('已保存','success');refreshAll()})
+}
+function deleteStation(i){if(!confirm('确定删除 "'+config[i].name+'" 吗？'))return;config.splice(i,1);api('/api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(config)}).then(function(){showToast('已删除','success');refreshAll()})}
+function showToast(m,t){var e=document.getElementById('toast');e.innerHTML='> '+m;e.className='toast'+(t?' '+t:'')+' show';setTimeout(function(){e.classList.remove('show')},2500)}
+
+function checkServer(){
+  fetch('/api/config').then(function(){document.getElementById('serverDot').className='pulse-dot online';document.getElementById('serverStatus').textContent='已连接'}).catch(function(){document.getElementById('serverDot').className='pulse-dot offline';document.getElementById('serverStatus').textContent='未连接'})
+}
+
+loadConfig().then(function(){refreshAll()});
+checkServer();
+</script>
+</body>
+</html>
