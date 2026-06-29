@@ -321,13 +321,6 @@ body::before{
 
     function init() {
         loadData();
-        // loadData from localStorage; initDefaultTables will be called if no data
-        setTimeout(() => {
-            if (tables.length === 0) {
-                initDefaultTables();
-                renderAll(); updateStats();
-            }
-        }, 2000);
     }
 
     function initDefaultTables() {
@@ -346,10 +339,6 @@ body::before{
     }
 
     function loadData() {
-        loadLocalFallback();
-    }
-
-    function loadLocalFallback() {
         try {
             const raw = localStorage.getItem('wedding_seating_v5_free');
             if (raw) {
@@ -360,14 +349,11 @@ body::before{
                     if (!t.shape) t.shape = 'round';
                     if (!t.side) t.side = 'groom';
                     if (t.x === undefined || t.y === undefined) { t.x = 50; t.y = 50; }
-                    delete t.position; delete t.positionOrder;
                 });
-                showToast('📤 已从本地加载数据', 'info');
             }
         } catch(e) { guests = []; tables = []; }
+        if (tables.length === 0) { initDefaultTables(); }
         renderAll(); updateStats();
-        if (guests.length === 0 && tables.length === 0) { initDefaultTables(); renderAll(); updateStats(); }
-        if (guests.length === 0) setTimeout(() => showToast('💡 点击"加载示例宾客"快速开始', 'info'), 500);
     }
 
     function initDefaultTables() {
@@ -1010,9 +996,9 @@ body::before{
     window.refreshData = refreshData;
 
     function refreshData() {
-        showToast('🔄 正在从本地加载...', 'info');
-        loadLocalFallback();
-        showToast('✅ 已从本地存储加载', 'success');
+        showToast('🔄 正在重新加载...', 'info');
+        loadData();
+        showToast('✅ 已刷新', 'success');
     }
 
     // ============ EXPOSE GLOBALLY ============
