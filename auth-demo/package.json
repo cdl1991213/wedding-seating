@@ -1,0 +1,17 @@
+{
+  "name": "auth-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "最简单的注册登录 Demo",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@vercel/kv": "^2.0.0",
+    "next": "^16.2.9",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
+  }
+}
