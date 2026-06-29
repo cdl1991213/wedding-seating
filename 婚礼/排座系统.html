@@ -312,7 +312,7 @@ body::before{
     const DATA_KEY = 'wedding_data';
     // ============ Supabase Configuration ============
     const SUPABASE_URL = 'https://huiaeurnjkczflfognzr.supabase.co';
-    const supabase = supabaseJs.createClient(SUPABASE_URL, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1aWFldXJuamtjemZsZm9nbnpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MTU2MTEsImV4cCI6MjA5ODI5MTYxMX0.BVsNCzVgDtaR1vUvGXK_f77TKPsXaFIbVXrVRtYEBnc');
+    const supabase = supabase.createClient(SUPABASE_URL, 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh1aWFldXJuamtjemZsZm9nbnpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MTU2MTEsImV4cCI6MjA5ODI5MTYxMX0.BVsNCzVgDtaR1vUvGXK_f77TKPsXaFIbVXrVRtYEBnc');
     let cloudSyncInProgress = false;
     let guests = [], tables = [], guestIdCounter = 0, tableIdCounter = 0;
     let searchHighlightedGuestId = null, searchHighlightedTableId = null, selectedTableId = null;
