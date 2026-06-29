@@ -339,21 +339,23 @@ body::before{
     }
 
     function loadData() {
-        try {
-            const raw = localStorage.getItem('wedding_seating_v5_free');
-            if (raw) {
-                const data = JSON.parse(raw);
-                guests = data.guests || []; tables = data.tables || [];
-                guestIdCounter = data.guestIdCounter || 0; tableIdCounter = data.tableIdCounter || 0;
-                tables.forEach(t => {
-                    if (!t.shape) t.shape = 'round';
-                    if (!t.side) t.side = 'groom';
-                    if (t.x === undefined || t.y === undefined) { t.x = 50; t.y = 50; }
-                });
-            }
-        } catch(e) { guests = []; tables = []; }
-        if (tables.length === 0) { initDefaultTables(); }
-        renderAll(); updateStats();
+        var saved = null;
+        try { saved = JSON.parse(localStorage.getItem('wedding_seating_v5_free')); } catch(e) {}
+        if (saved && saved.tables && saved.tables.length > 0) {
+            guests = saved.guests || [];
+            tables = saved.tables;
+            guestIdCounter = saved.guestIdCounter || 0;
+            tableIdCounter = saved.tableIdCounter || 0;
+            tables.forEach(function(t) {
+                if (!t.shape) t.shape = 'round';
+                if (!t.side) t.side = 'groom';
+                if (t.x === undefined || t.y === undefined) { t.x = 50; t.y = 50; }
+            });
+        } else {
+            initDefaultTables();
+        }
+        renderAll();
+        updateStats();
     }
 
     function initDefaultTables() {
