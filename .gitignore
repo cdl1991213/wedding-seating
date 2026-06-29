@@ -1,0 +1,11 @@
+﻿# OS files
+Thumbs.db
+.DS_Store
+
+# Temp/backup files
+*.bak
+*.py
+*.txt
+
+# Node
+node_modules/
