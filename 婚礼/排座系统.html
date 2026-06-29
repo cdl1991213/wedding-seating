@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -218,6 +218,7 @@ body::before{
         </div>
         <button class="btn btn-ghost btn-sm" onclick="handleImportExcel()">📥 导入</button>
         <button class="btn btn-outline btn-sm" onclick="exportToExcel()">📤 导出</button>
+            <button class="btn btn-ghost btn-sm" onclick="refreshData()" title="从云端加载最新数据">🔄 刷新</button>
             <button class="btn btn-primary btn-sm" onclick="publishUpdate()" id="publishBtn">🚀 发布更新</button>
         <button class="btn btn-ghost btn-sm" onclick="resetAll()">🔄 重置</button>
     </div>
@@ -337,7 +338,6 @@ body::before{
     }
 
     function loadData() {
-        // 从 Supabase 加载云端数据 (REST API)
         fetch(SUPABASE_URL + '/rest/v1/seating_data?select=data&key=eq.' + DATA_KEY, {
             headers: { 'apikey': SUPABASE_KEY, 'Accept': 'application/json' }
         })
@@ -353,13 +353,11 @@ body::before{
                     if (t.x === undefined || t.y === undefined) { t.x = 50; t.y = 50; }
                     delete t.position; delete t.positionOrder;
                 });
-                showToast('☁️ 已加载云端数据', 'success');
             } else {
                 loadLocalFallback();
             }
             renderAll(); updateStats();
             if (guests.length === 0 && tables.length === 0) initDefaultTables();
-            if (guests.length === 0) setTimeout(function() { showToast('💡 点击"加载示例宾客"快速开始', 'info'); }, 500);
         })
         .catch(function() {
             loadLocalFallback();
@@ -420,12 +418,16 @@ body::before{
     function saveData() {
         const payload = { guests, tables, guestIdCounter, tableIdCounter };
         try { localStorage.setItem('wedding_seating_v5_free', JSON.stringify(payload)); } catch(e) {}
+        try {
+            navigator.sendBeacon(SUPABASE_URL + '/rest/v1/seating_data?key=eq.' + DATA_KEY,
+                new Blob([JSON.stringify({ data: payload })], { type: 'application/json' }));
+        } catch(e) {}
         fetch(SUPABASE_URL + '/rest/v1/seating_data?key=eq.' + DATA_KEY, {
             method: 'PATCH',
             headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({ data: payload })
-        }).catch(function(e) { console.warn('Cloud save:', e); });
-        const st = document.getElementById('saveStatus');
+        }).catch(function() {});
+        var st = document.getElementById('saveStatus');
         if (st) { st.innerHTML = '☁️ 已保存'; st.style.color = ''; }
     }
 
@@ -1011,35 +1013,65 @@ body::before{
 
         // ============ PUBLISH UPDATE ============
     function publishUpdate() {
-        const btn = document.getElementById('publishBtn');
+        var btn = document.getElementById('publishBtn');
         if (!btn) return;
-        const orig = btn.innerHTML;
+        var orig = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '⏳ 保存中...';
-        saveData();
-        // Force a direct cloud sync
-        const payload = { guests, tables, guestIdCounter, tableIdCounter };
+        btn.innerHTML = '⏳ 同步中...';
+        var payload = { guests: guests, tables: tables, guestIdCounter: guestIdCounter, tableIdCounter: tableIdCounter };
         try { localStorage.setItem('wedding_seating_v5_free', JSON.stringify(payload)); } catch(e) {}
         fetch(SUPABASE_URL + '/rest/v1/seating_data?key=eq.' + DATA_KEY, {
             method: 'PATCH',
             headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({ data: payload })
-        }).then(function(r) {
-            if (!r.ok) throw new Error('HTTP ' + r.status);
-            const now = new Date().toLocaleString('zh-CN');
-            showToast('✅ 数据已同步到云端，所有人可见！', 'success');
-            btn.innerHTML = '☁️ 已同步';
-            document.getElementById('saveStatus').innerHTML = '☁️ 云端 ' + now;
+        })
+        .then(function(r) { return r.json(); })
+        .then(function() {
+            var now = new Date().toLocaleString('zh-CN');
+            showToast('✅ 数据已同步到云端，所有设备可见！', 'success');
+            btn.innerHTML = '✅ 已同步';
+            var st = document.getElementById('saveStatus');
+            if (st) { st.innerHTML = '☁️ ' + now; }
             btn.disabled = false;
             setTimeout(function() { btn.innerHTML = orig; }, 2000);
-        }).catch(function(e) {
-            showToast('❌ 云同步失败', 'error');
+        })
+        .catch(function() {
+            showToast('❌ 同步失败，请检查网络后重试', 'error');
             btn.innerHTML = orig;
             btn.disabled = false;
         });
     }
 
     window.publishUpdate = publishUpdate;
+    window.refreshData = refreshData;
+
+    function refreshData() {
+        showToast('🔄 正在从云端刷新...', 'info');
+        fetch(SUPABASE_URL + '/rest/v1/seating_data?select=data&key=eq.' + DATA_KEY, {
+            headers: { 'apikey': SUPABASE_KEY, 'Accept': 'application/json' }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(json) {
+            if (json && json.length > 0 && json[0].data) {
+                var d = json[0].data;
+                guests = d.guests || []; tables = d.tables || [];
+                guestIdCounter = d.guestIdCounter || 0; tableIdCounter = d.tableIdCounter || 0;
+                tables.forEach(function(t) {
+                    if (!t.shape) t.shape = 'round';
+                    if (!t.side) t.side = 'groom';
+                    if (t.x === undefined || t.y === undefined) { t.x = 50; t.y = 50; }
+                    delete t.position; delete t.positionOrder;
+                });
+                renderAll(); updateStats();
+                showToast('✅ 已刷新为最新数据', 'success');
+            } else {
+                showToast('⚠️ 云端暂无数据', 'warning');
+            }
+        })
+        .catch(function() {
+            showToast('❌ 刷新失败，请检查网络', 'error');
+        });
+    }
 
     // ============ EXPOSE GLOBALLY ============
     window.addGuest = addGuest;
